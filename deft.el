@@ -636,7 +636,8 @@ entire filter string is interpreted as a single regular expression."
   :group 'deft)
 
 (defcustom deft-recursive-archive nil
-  "If true, archives under deft-archive-directory preserving directory structure"
+  "If true, archives under deft-archive-directory preserving directory
+structure"
   :type 'bool
   :group 'deft)
 
@@ -1541,31 +1542,27 @@ If the point is not on a file button, do nothing."
   (interactive)
   (let (old new name-ext)
     (setq old (deft-filename-at-point))
-    (message "%s" old)
     (when old
       (if deft-recursive-archive
         ;; Copy file to mirrored dir structure under archive root.
-        (let (old_dir (file-name-directory old))
-             (message "Old is at %s" old_dir)
-             (setq name-ext (file-name-nondirectory old))
-             (setq new (concat deft-archive-directory name-ext)))
-                  ;; Copy file to deft archive root.
-          (setq name-ext (file-name-nondirectory old)))
-      (message "Will copy to %s %s" name-ext new)
-          
-      (when (y-or-n-p (concat "Archive file " name-ext "? "))
-        ;; if the filename already exists ask for a new name
+          (setq name-ext (file-relative-name old deft-directory))
+	;; Copy file to deft archive root.
+      	  (setq name-ext (file-name-nondirectory old)))
+       (setq new (concat deft-archive-directory name-ext))
+       (message "Will copy to %s" name-ext new)
+       (when (y-or-n-p (concat "Archive file " name-ext "? "))
+       ;; if the filename already exists ask for a new name
         (while (file-exists-p new)
           (setq name-ext (read-string "File exists, choose a new name: " name-ext))
           (setq new (concat deft-archive-directory name-ext)))
-        (when (not (file-exists-p deft-archive-directory))
-          (make-directory deft-archive-directory t))
-        ;(rename-file old new)
-        ;(deft-update-visiting-buffers old new)
+	(let ((new_dir (file-name-parent-directory new)))
+          (when (not (file-exists-p new_dir))
+            (make-directory new_dir t)))
+        (rename-file old new)
+        (deft-update-visiting-buffers old new)
         (deft-refresh)))))
 
 ;; File list filtering
-
 (defun deft-sort-files-by-mtime (files)
   "Sort FILES in reverse order by modified time."
   (sort files (lambda (f1 f2) (deft-file-newer-p f1 f2))))
@@ -1811,12 +1808,15 @@ Otherwise, quick create a new file."
   (add-hook 'org-store-link-functions 'org-deft-store-link))
 
 (defun deft--org-follow-link (handle)
-  (org-open-file-with-emacs
-   (expand-file-name handle deft-directory)))
+  (when (file-exists-p (expand-file-name handle deft-directory))
+    (org-open-file (expand-file-name handle deft-directory)))
+  (when (file-exists-p (expand-file-name handle deft-archive-directory))
+    (message "File only found in archive")
+    (org-open-file (expand-file-name handle deft-archive-directory))))
 
 (defun deft--org-complete ()
   (let ((file (completing-read "file" (deft-find-all-files-no-prefix))))
-    (concat "deft:" (substring file 1))))
+    (concat "deft:" file)))
 
 ;;; Mode definition
 
