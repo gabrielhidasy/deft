@@ -1808,14 +1808,34 @@ Otherwise, quick create a new file."
   (add-hook 'org-store-link-functions 'org-deft-store-link))
 
 (defun deft--org-follow-link (handle)
-  (when (file-exists-p (expand-file-name handle deft-directory))
-    (org-open-file (expand-file-name handle deft-directory)))
-  (when (file-exists-p (expand-file-name handle deft-archive-directory))
-    (message "File only found in archive")
-    (org-open-file (expand-file-name handle deft-archive-directory))))
+  ;; If the file does not exist in main deft dir, but is in archive,
+  ;; open archived version. If none exists, create one? Or fail?
+  ;; Remove the last condition if failing is better
+  (cond ((file-exists-p (expand-file-name handle deft-directory))
+         (org-open-file (expand-file-name handle deft-directory)))
+        ((file-exists-p (expand-file-name handle deft-archive-directory))
+         (message "File only found in archive")
+         (org-open-file (expand-file-name handle deft-archive-directory)))
+        (t (org-open-file (expand-file-name handle deft-directory)))))
+
+(defun deft--file-title-and-name (f)
+  (let ((title (deft-file-title f))
+	(fn (replace-regexp-in-string
+	     (expand-file-name deft-directory) "" f)))
+    (list title fn)))
 
 (defun deft--org-complete ()
-  (let ((file (completing-read "file" (deft-find-all-files-no-prefix))))
+  (let ((file (car
+	       (let ((choices
+		      (mapcar 'deft--file-title-and-name
+			      (deft-find-all-files))))
+  (alist-get
+   (completing-read "file: " choices)
+   choices nil nil 'equal)))))
+    (concat "deft:" file)))
+
+(defun deft--org-complete ()
+  (let ((file (completing-read "file: " (deft-find-all-files-no-prefix))))
     (concat "deft:" file)))
 
 ;;; Mode definition
