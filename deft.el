@@ -635,6 +635,11 @@ entire filter string is interpreted as a single regular expression."
   :type 'boolean
   :group 'deft)
 
+(defcustom deft-recursive-archive nil
+  "If true, archives under deft-archive-directory preserving directory structure"
+  :type 'bool
+  :group 'deft)
+
 (defcustom deft-recursive-ignore-dir-regexp
   (concat "\\(?:"
           "\\."
@@ -1536,9 +1541,18 @@ If the point is not on a file button, do nothing."
   (interactive)
   (let (old new name-ext)
     (setq old (deft-filename-at-point))
+    (message "%s" old)
     (when old
-      (setq name-ext (file-name-nondirectory old))
-      (setq new (concat deft-archive-directory name-ext))
+      (if deft-recursive-archive
+        ;; Copy file to mirrored dir structure under archive root.
+        (let (old_dir (file-name-directory old))
+             (message "Old is at %s" old_dir)
+             (setq name-ext (file-name-nondirectory old))
+             (setq new (concat deft-archive-directory name-ext)))
+                  ;; Copy file to deft archive root.
+          (setq name-ext (file-name-nondirectory old)))
+      (message "Will copy to %s %s" name-ext new)
+          
       (when (y-or-n-p (concat "Archive file " name-ext "? "))
         ;; if the filename already exists ask for a new name
         (while (file-exists-p new)
@@ -1546,8 +1560,8 @@ If the point is not on a file button, do nothing."
           (setq new (concat deft-archive-directory name-ext)))
         (when (not (file-exists-p deft-archive-directory))
           (make-directory deft-archive-directory t))
-        (rename-file old new)
-        (deft-update-visiting-buffers old new)
+        ;(rename-file old new)
+        ;(deft-update-visiting-buffers old new)
         (deft-refresh)))))
 
 ;; File list filtering
