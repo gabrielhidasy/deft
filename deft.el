@@ -679,7 +679,7 @@ recursively, that is, when `deft-recursive' is non-nil."
   "Regular expression to remove from file titles.
 Presently, it removes leading LaTeX comment delimiters, leading
 and trailing hash marks from Markdown ATX headings, leading
-astersisks from Org Mode headings, and Emacs mode lines of the
+asterisks from Org Mode headings, and Emacs mode lines of the
 form -*-mode-*-."
   :type 'regexp
   :safe 'stringp
@@ -713,38 +713,38 @@ slash characters in the file name.  The default behavior is to
 replace slashes with hyphens in the file name.  To change the
 replacement charcter to an underscore, one could use:
 
-   (setq deft-file-naming-rules '((noslash . \"_\")))
+   (setq deft-file-naming-rules \\='((noslash . \"_\")))
 
 Value of `nospace' is a string which should replace the space
 characters in the file name.  Below example replaces spaces with
 underscores in the file names:
 
-   (setq deft-file-naming-rules '((nospace . \"_\")))
+   (setq deft-file-naming-rules \\='((nospace . \"_\")))
 
 Value of `case-fn' is a function name that takes a string as
 input that has to be applied on the file name.  Below example
 makes the file name all lower case:
 
-   (setq deft-file-naming-rules '((case-fn . downcase)))
+   (setq deft-file-naming-rules \\='((case-fn . downcase)))
 
 It is also possible to use a combination of the above cons cells
 to get file name in various case styles like,
 
 snake_case:
 
-    (setq deft-file-naming-rules '((noslash . \"_\")
+    (setq deft-file-naming-rules \\='((noslash . \"_\")
                                    (nospace . \"_\")
                                    (case-fn . downcase)))
 
 or CamelCase
 
-    (setq deft-file-naming-rules '((noslash . \"\")
+    (setq deft-file-naming-rules \\='((noslash . \"\")
                                    (nospace . \"\")
                                    (case-fn . capitalize)))
 
 or kebab-case
 
-    (setq deft-file-naming-rules '((noslash . \"-\")
+    (setq deft-file-naming-rules \\='((noslash . \"-\")
                                    (nospace . \"-\")
                                    (case-fn . downcase)))"
   :type '(alist :key-type symbol :value-type sexp)
@@ -855,7 +855,7 @@ regexp.")
 
 (defvar deft-current-sort-method 'mtime
   "Current file soft method.
-Available methods are 'mtime and 'title.")
+Available methods are \\='mtime and \\='title.")
 
 (defvar deft-all-files nil
   "List of all files in `deft-directory'.")
@@ -1456,11 +1456,15 @@ the newly created FILE."
       "\n\n")
      nil file nil)))
 
-(defun deft-new-file-named (slug)
+(defun deft-new-file-named (slug &optional arg)
   "Create a new file named SLUG.
-SLUG is the short file name, without a path or a file extension."
-  (interactive "sNew filename (without extension): ")
-  (let ((file (deft-absolute-filename slug)))
+SLUG is the short file name, without a path or a file extension.
+With prefix ARG, ask for a file extension."
+  (interactive "sNew filename (without extension): \nP")
+  (let* ((extension (and arg
+                         (completing-read "Extension: " deft-extensions
+                                          nil t nil nil deft-default-extension)))
+         (file (deft-absolute-filename slug extension)))
     (if (file-exists-p file)
         (message "Aborting, file already exists: %s" file)
       (deft-auto-populate-title-maybe file)
@@ -1471,12 +1475,14 @@ SLUG is the short file name, without a path or a file extension."
         (goto-char (point-max))))))
 
 ;;;###autoload
-(defun deft-new-file ()
+(defun deft-new-file (&optional arg)
   "Create a new file quickly.
-Use either an automatically generated filename or the filter string if non-nil
-and `deft-use-filter-string-for-filename' is set.  If the filter string is
-non-nil and title is not from filename, use it as the title."
-  (interactive)
+Use either an automatically generated filename or the filter
+string if non-nil and `deft-use-filter-string-for-filename' is
+set.  If the filter string is non-nil and title is not from
+filename, use it as the title.  The prefix ARG is passed to
+`deft-new-file-named'."
+  (interactive "P")
   (let (slug)
     (if (and deft-filter-regexp deft-use-filter-string-for-filename)
         ;; If the filter string is non-emtpy and titles are taken from
@@ -1485,7 +1491,7 @@ non-nil and title is not from filename, use it as the title."
       ;; If the filter string is empty, or titles are taken from file
       ;; contents, then use an automatically generated unique filename.
       (setq slug (deft-unused-slug)))
-    (deft-new-file-named slug)))
+    (deft-new-file-named slug arg)))
 
 (defun deft-filename-at-point ()
   "Return the name of the file represented by the button at the point.
